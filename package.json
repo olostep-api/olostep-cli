@@ -1,6 +1,6 @@
 {
   "name": "olostep-cli",
-  "version": "0.2.0-dev.0",
+  "version": "0.2.1-dev.0",
   "description": "CLI for the Olostep API — scrape, map, crawl, answers, batch, plus skills and MCP install. Pure JS, no binary download.",
   "license": "MIT",
   "homepage": "https://www.olostep.com/",

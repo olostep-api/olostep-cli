@@ -22,7 +22,11 @@ import { registerListMcp } from "./commands/list-mcp.js";
 
 import { maybeNotifyUpdate } from "./lib/version-check.js";
 
-const VERSION = "0.2.0-dev.0";
+// Replaced at build time by tsup's `define` with the package.json version.
+// The fallback only fires under `npm run dev` (tsx) where define doesn't apply.
+declare const __OLOSTEP_CLI_VERSION__: string;
+const VERSION: string =
+  typeof __OLOSTEP_CLI_VERSION__ !== "undefined" ? __OLOSTEP_CLI_VERSION__ : "0.0.0-dev";
 
 async function main(): Promise<void> {
   const program = new Command();
