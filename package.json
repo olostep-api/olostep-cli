@@ -1,0 +1,51 @@
+{
+  "name": "olostep-cli",
+  "version": "0.2.0-dev.0",
+  "description": "CLI for the Olostep API — scrape, map, crawl, answers, batch, plus skills and MCP install. Pure JS, no binary download.",
+  "license": "MIT",
+  "homepage": "https://www.olostep.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olostep-api/olostep-cli.git"
+  },
+  "bin": {
+    "olostep": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "kleur": "^4.1.5",
+    "open": "^8.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "keywords": [
+    "olostep",
+    "cli",
+    "web-scraping",
+    "scrape",
+    "crawl",
+    "map",
+    "answers",
+    "ai-agents",
+    "mcp"
+  ]
+}
