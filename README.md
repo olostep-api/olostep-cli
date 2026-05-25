@@ -1,34 +1,163 @@
 # olostep-cli
 
-CLI for the [Olostep API](https://www.olostep.com/) — scrape, map, crawl, answer, and batch the web from your terminal. Every command returns **JSON** for scripts, CI, and AI agents.
+[![npm](https://img.shields.io/npm/v/olostep-cli/next?label=npm%40next)](https://www.npmjs.com/package/olostep-cli)
+[![CI](https://github.com/olostep-api/olostep-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/olostep-api/olostep-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-Pure JavaScript. No Python, no binary download, fast install and fast startup.
+The official CLI for the [Olostep API](https://www.olostep.com/) — scrape, map, crawl, AI-researched answers, and parallel batch jobs from your terminal. Every data command returns **JSON on stdout**, so it pipes cleanly into `jq`, scripts, agents, and CI.
 
-> **0.2.x is the new Node rewrite of the CLI.** Same commands, same flags, same credentials path as 0.1.x. Existing users get a smaller install and a faster CLI when they update.
+> **0.2.x is a Node rewrite of the CLI.** Same commands, same flags, same JSON, same credentials path as 0.1.x — drop-in compatible. Smaller and faster:
+
+| | 0.1.x (Python) | 0.2.x (Node) |
+| --- | --- | --- |
+| `npm install -g` | ~31 s (downloads a platform binary) | **~0.7 s** |
+| Cold start | 2–5 s (PyInstaller extract) | **~0.2 s** |
+| On-disk | 14 MB | **99 KB** |
 
 ---
 
 ## Install
 
 ```bash
-npm install -g olostep-cli
+npm install -g olostep-cli@next
 olostep init
 ```
 
-`olostep init` is the recommended first step — it signs you in, installs the Olostep skills into your AI agents, and configures the MCP server, all in one command.
+Requires Node.js **18+**. While 0.2.x is in pre-release, install with `@next`; once 0.2.0 ships to `latest`, plain `npm install -g olostep-cli` will give you the Node version.
 
-**Requirements:** Node.js **18+**.
+`olostep init` is the recommended first step — it signs you in, installs the Olostep skills into every detected AI agent, and configures the MCP server, all in one go. Flags: `--skills-only`, `--mcp-only`, `--no-browser`, `--relogin`.
+
+To **just sign in** (no skills, no MCP): `olostep login` (or `--no-browser` for SSH). For CI, set `OLOSTEP_API_KEY=...`. Get a key at <https://www.olostep.com/dashboard/api-keys>.
 
 ---
 
-## Sign in
+## Quick start
 
 ```bash
-olostep login              # browser PKCE flow
-olostep login --no-browser # print the URL instead
+# Pull one URL as clean markdown
+olostep scrape "https://example.com" --formats markdown
+
+# Discover URLs on a site
+olostep map "https://example.com" --top-n 20
+
+# AI-researched answer with citations
+olostep answer "What does Olostep do?"
+
+# Crawl every page on a site
+olostep crawl "https://docs.example.com" --max-pages 50
+
+# Scrape many URLs from a CSV, in parallel
+olostep batch-scrape urls.csv --formats markdown,html
 ```
 
-Credentials are saved at the same place as the Python CLI:
+Pipes stay clean — logs go to stderr, JSON to stdout:
+
+```bash
+olostep map "https://example.com" | jq '.urls[:10]'
+olostep scrape "https://example.com" | jq -r '.result.markdown_content'
+```
+
+---
+
+## Commands
+
+Run `olostep <command> --help` for the full flag list.
+
+| Command | What it does |
+| --- | --- |
+| `olostep login` | Browser PKCE sign-in |
+| `olostep init` | Login + install skills + install MCP server (recommended first step) |
+| `olostep status` | Show version, auth, config dir (`--json` for machine output) |
+| `olostep update` | `npm install -g olostep-cli@latest` (`--check` to check only) |
+| `olostep scrape <url>` | One URL → markdown / html / text / json / raw_pdf / screenshot |
+| `olostep scrape-get <id>` | Refetch a previous scrape by ID |
+| `olostep map <url>` | Discover URLs on a site (filter by query or pattern) |
+| `olostep answer <task>` | AI-researched answer with citations (synchronous) |
+| `olostep crawl <url>` | Crawl a whole site, polls until done (filters, robots.txt, dry-run) |
+| `olostep batch-scrape <csv>` | Up to 10,000 URLs in parallel from a CSV |
+| `olostep batch-update <id>` | Update batch metadata |
+| `olostep add skills` / `remove skills` / `list skills` | Manage Olostep skills in your AI agents |
+| `olostep mcp install` / `mcp uninstall` / `list mcp` | Install the Olostep MCP server into your agents |
+
+**Common flags** on every data command: `--out <path>` (write JSON to a file, default stdout), `--timeout <seconds>` (HTTP timeout), `--api-key <key>` (override the resolved key for one run).
+
+---
+
+## Output
+
+Every data command prints its JSON result to **stdout** by default. Pass `--out <path>` to write to a file instead.
+
+| Flag | Behavior |
+| --- | --- |
+| *(none)* | Pretty-printed JSON to **stdout** |
+| `--out <path>` | Write JSON to that file (parent dirs created) |
+| `--out -` | Explicit stdout (same as default) |
+
+Management commands (`status`, `list`, `add/remove skills`, `mcp install/uninstall`) print human-readable text by default; pass `--json` for machine output. Progress and logs always go to **stderr**, so stdout stays clean.
+
+---
+
+## Skills for AI agents
+
+The CLI ships **13 Olostep skills** — drop-in `SKILL.md` files installed into Claude Code, Cursor, and other agents so they can use Olostep natively. Three categories:
+
+| Category | What it does | Skills |
+| --- | --- | --- |
+| `usage` | Use Olostep's features | `scrape`, `search`, `answers`, `crawl`, `map`, `batch` |
+| `build` | Install / integrate Olostep into a codebase | `setup`, `integrate` |
+| `workflow` | Produce a deliverable end-to-end | `research`, `docs-to-code`, `migrate-code`, `debug-error`, `extract-schema` |
+
+```bash
+olostep add skills                              # install all 13 into every detected agent
+olostep add skills --category usage             # only feature skills
+olostep add skills --skill scrape --skill map   # cherry-pick
+olostep add skills --agent cursor --agent claude
+olostep list skills                             # show what's installed where
+olostep remove skills                           # uninstall
+```
+
+Other useful flags: `--exclude <name>` (repeatable), `--global` / `--no-global`, `--link-mode <auto|symlink|copy>`, `--overwrite` / `--no-overwrite`, `--json`.
+
+Supported agents: **Cursor, Claude, Codex, Windsurf, Continue, Augment, Roo, Gemini, Copilot, Factory.**
+
+---
+
+## MCP server install
+
+The CLI writes the Olostep MCP server into your agent's config for you — no JSON editing.
+
+```bash
+olostep mcp install                       # detect agents, hosted endpoint (default)
+olostep mcp install --agent cursor        # one agent
+olostep mcp install --transport stdio     # local `npx olostep-mcp` instead
+olostep mcp install --no-global           # write into the current project
+olostep mcp install --dry-run --json      # show the plan, don't write
+olostep list mcp                          # see where it's installed
+olostep mcp uninstall                     # remove the olostep entry
+```
+
+**Two transports:**
+
+- **`http`** *(default)* — hosted at `https://mcp.olostep.com/mcp`. No local process.
+- **`stdio`** — runs `npx -y olostep-mcp` locally. Useful for offline use.
+
+The CLI merges the `olostep` entry into your existing MCP config without touching other servers. Restart your agent after install.
+
+Supported MCP-enabled agents: **Cursor, Claude Code, Windsurf, VS Code, Kilo.**
+
+---
+
+## Auth & config
+
+API key resolution order (first match wins):
+
+1. `--api-key <key>` flag
+2. `OLOSTEP_API_KEY` env var
+3. `OLOSTEP_API_TOKEN` env var
+4. `.env` file in the current directory
+5. Saved credentials file (after `olostep login`)
+
+The credentials file is shared with the Python CLI, so existing users keep their login:
 
 | OS | Path |
 | --- | --- |
@@ -36,29 +165,34 @@ Credentials are saved at the same place as the Python CLI:
 | Linux | `~/.config/olostep-cli/credentials.json` |
 | Windows | `%USERPROFILE%\AppData\Roaming\olostep-cli\credentials.json` |
 
-You can also use `OLOSTEP_API_KEY` (or `OLOSTEP_API_TOKEN`), or a project-local `.env`.
+Delete that file to sign out. Set `OLOSTEP_CLI_CONFIG_DIR` to override the directory. An "update available" notice prints on interactive runs — silence with `OLOSTEP_NO_UPDATE_NOTICE=1`.
 
 ---
 
-## Status & updates
+## Tips
 
-```bash
-olostep status            # version, auth state, config dir
-olostep status --json     # machine-readable
-olostep update            # update to the latest version
-olostep update --check    # check only
+**PowerShell** tokenizes `,` and `*` differently from bash — quote the argument:
+
+```powershell
+olostep scrape "https://example.com" --formats "markdown,html"
+olostep map   "https://example.com" --include-url "/*"
+olostep answer "Extract facts" --json-format '{"company":"","year":""}'
 ```
 
-A one-line "update available" notice prints on interactive runs (silenceable with `OLOSTEP_NO_UPDATE_NOTICE=1`). It never blocks command output.
+Use single quotes for JSON to avoid `$` interpolation.
 
 ---
 
-## Coming next
+## Links
 
-`scrape`, `map`, `answer`, `crawl`, `scrape-get`, `batch-scrape`, `batch-update`, `add/remove/list skills`, `mcp install/uninstall`, `list mcp`. Same flags and JSON schemas as the previous CLI.
+- **Olostep** — <https://www.olostep.com>
+- **Docs** — <https://docs.olostep.com> · [CLI docs](https://docs.olostep.com/sdks/cli)
+- **API keys** — <https://www.olostep.com/dashboard/api-keys>
+- **npm** — <https://www.npmjs.com/package/olostep-cli>
+- **GitHub** — <https://github.com/olostep-api/olostep-cli>
 
 ---
 
 ## License
 
-MIT
+MIT — see [`LICENSE`](./LICENSE).
