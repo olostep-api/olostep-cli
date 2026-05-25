@@ -11,6 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Build, typecheck, unit tests, no-network smoke. Runs on the full
+  # matrix so we catch OS/Node-version specific regressions.
   build:
     strategy:
       fail-fast: false
@@ -38,9 +40,92 @@ jobs:
       - name: Test
         run: npm test --if-present
 
-      - name: --version smoke
+      - name: --version / --help / status smoke
         shell: bash
         run: |
           node dist/cli.js --version
-          node dist/cli.js --help
-          node dist/cli.js status --json
+          node dist/cli.js --help > /dev/null
+          node dist/cli.js status --json > /dev/null
+
+  # Real-API smoke against the production Olostep API. Ubuntu-only to
+  # keep credit usage at 1× per push. Skipped on fork PRs (no secret
+  # access). Each step retries on transient API/network flakes.
+  e2e-real-api:
+    needs: build
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install + build
+        run: |
+          npm ci
+          npm run build
+
+      - name: map (real API, top-n 1)
+        env:
+          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+        run: |
+          if [ -z "$OLOSTEP_API_KEY" ]; then
+            echo "::warning::OLOSTEP_API_KEY not set — skipping real-API e2e"
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            node dist/cli.js map https://example.com --top-n 1 --timeout 60 > /dev/null && exit 0
+            echo "::warning::map attempt $attempt failed; retrying"
+            sleep 5
+          done
+          echo "::error::map failed after 3 attempts"; exit 1
+
+      - name: scrape (real API, markdown only)
+        env:
+          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+        run: |
+          if [ -z "$OLOSTEP_API_KEY" ]; then exit 0; fi
+          for attempt in 1 2 3; do
+            node dist/cli.js scrape https://example.com --formats markdown --timeout 60 > /dev/null && exit 0
+            echo "::warning::scrape attempt $attempt failed; retrying"
+            sleep 5
+          done
+          echo "::error::scrape failed after 3 attempts"; exit 1
+
+      - name: answer (real API — verifies the synchronous fix, must not loop)
+        env:
+          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+        run: |
+          if [ -z "$OLOSTEP_API_KEY" ]; then exit 0; fi
+          for attempt in 1 2 3; do
+            node dist/cli.js answer "what is 2+2" --timeout 120 > /dev/null && exit 0
+            echo "::warning::answer attempt $attempt failed; retrying"
+            sleep 5
+          done
+          echo "::error::answer failed after 3 attempts"; exit 1
+
+      - name: crawl --dry-run (no credits)
+        run: node dist/cli.js crawl https://example.com --max-pages 1 --dry-run > /dev/null
+
+      - name: batch-scrape --dry-run (no credits)
+        shell: bash
+        run: |
+          printf "custom_id,url\nex1,https://example.com\n" > urls.csv
+          node dist/cli.js batch-scrape urls.csv --dry-run > /dev/null
+
+      - name: add skills (isolated dir — verifies skill bundle resolves)
+        shell: bash
+        run: |
+          mkdir -p _canon _ag
+          node dist/cli.js add skills \
+            --no-global \
+            --canonical-dir "$PWD/_canon" \
+            --agent-skills-dir "$PWD/_ag" \
+            --link-mode copy \
+            --json > add.json
+          node -e "const d=require('./add.json'); if (d.installed.length !== 13) { console.error('expected 13 skills, got', d.installed.length); process.exit(1); }"
+
+      - name: mcp install --dry-run
+        run: node dist/cli.js mcp install --dry-run --json --agent cursor --api-key test-key > /dev/null
