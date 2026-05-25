@@ -67,21 +67,36 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Stamp package.json version from tag
+      - name: Stamp package.json version from tag + pick dist-tag
         # GITHUB_REF_NAME is e.g. "v0.3.0" — strip the leading "v" and pin
         # package.json to that exact version so the publish matches the tag.
+        # Prerelease versions (contain a "-", per SemVer 9) publish to the
+        # `next` dist-tag instead of `latest`, so a tag like v0.2.0-dev.0
+        # doesn't make every user `npm install -g olostep-cli` get the
+        # prerelease. npm does NOT auto-detect prereleases — you have to
+        # pass --tag explicitly.
+        id: stamp
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          echo "Publishing version $VERSION"
+          if [[ "$VERSION" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          echo "Publishing version $VERSION to dist-tag $DIST_TAG"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=$([[ "$DIST_TAG" == "next" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm run build
 
       - name: Publish
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag "${{ steps.stamp.outputs.dist_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    outputs:
+      version: ${{ steps.stamp.outputs.version }}
+      dist_tag: ${{ steps.stamp.outputs.dist_tag }}
+      is_prerelease: ${{ steps.stamp.outputs.is_prerelease }}
 
   release:
     name: GitHub Release
@@ -100,3 +115,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
+          # Mark prereleases as prerelease on GitHub so they don't show up
+          # as "Latest release" on the repo page.
+          prerelease: ${{ needs.publish.outputs.is_prerelease == 'true' }}
