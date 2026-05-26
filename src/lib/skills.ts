@@ -258,13 +258,37 @@ export function discoverSkills(srcDir: string): SkillEntry[] {
   return entries;
 }
 
-export function detectInstalledAgents(): string[] {
-  const home = os.homedir();
+export function detectInstalledAgents(opts: { home?: string } = {}): string[] {
+  const home = opts.home || os.homedir();
   const out: string[] = [];
   for (const [agent, [probe]] of Object.entries(AGENT_MAP)) {
-    if (fs.existsSync(path.join(home, probe))) out.push(agent);
+    const agentDir = path.join(home, probe);
+    if (!fs.existsSync(agentDir)) continue;
+    if (!isRealAgentDir(agentDir)) continue;
+    out.push(agent);
   }
   return out;
+}
+
+/**
+ * A "real" agent dir contains files/folders beyond the skills/ subdir
+ * that any skill-installer (including ours) might have created. Without
+ * this check, dirs like ~/.factory/, ~/.roo/, ~/.augment/ left behind by
+ * another CLI's broad skill install get auto-targeted on our next run,
+ * polluting `list skills` with agents the user doesn't actually use.
+ */
+function isRealAgentDir(agentDir: string): boolean {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(agentDir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const ent of entries) {
+    if (ent.name === "skills") continue;
+    return true;
+  }
+  return false;
 }
 
 function resolveTargets(
