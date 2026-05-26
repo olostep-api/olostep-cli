@@ -1,6 +1,7 @@
 import { Command } from "commander";
 
 import { registerLogin } from "./commands/login.js";
+import { registerLogout } from "./commands/logout.js";
 import { registerStatus } from "./commands/status.js";
 import { registerUpdate } from "./commands/update.js";
 import { registerInit } from "./commands/init.js";
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
 
   // Top-level commands
   registerLogin(program);
+  registerLogout(program);
   registerInit(program);
   registerStatus(program, VERSION);
   registerUpdate(program, VERSION);
