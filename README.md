@@ -66,6 +66,7 @@ Run `olostep <command> --help` for the full flag list.
 | Command | What it does |
 | --- | --- |
 | `olostep login` | Browser PKCE sign-in |
+| `olostep logout` | Remove saved credentials (confirms first); warns if env vars still hold a key. `--yes` skips prompt, `--dry-run` previews |
 | `olostep init` | Login + install skills + install MCP server (recommended first step) |
 | `olostep status` | Show version, auth, config dir (`--json` for machine output) |
 | `olostep update` | `npm install -g olostep-cli@latest` (`--check` to check only) |
@@ -165,7 +166,7 @@ The credentials file is shared with the Python CLI, so existing users keep their
 | Linux | `~/.config/olostep-cli/credentials.json` |
 | Windows | `%USERPROFILE%\AppData\Roaming\olostep-cli\credentials.json` |
 
-Delete that file to sign out. Set `OLOSTEP_CLI_CONFIG_DIR` to override the directory. An "update available" notice prints on interactive runs — silence with `OLOSTEP_NO_UPDATE_NOTICE=1`.
+Run `olostep logout` to delete that file (it confirms first — pass `-y` to skip, or `--dry-run` to preview). If `OLOSTEP_API_KEY` / `OLOSTEP_API_TOKEN` env vars or a `.env` file in your cwd still define a key, `logout` reports them with the exact unset commands — those sources take priority over the credentials file. Set `OLOSTEP_CLI_CONFIG_DIR` to override the directory. An "update available" notice prints on interactive runs — silence with `OLOSTEP_NO_UPDATE_NOTICE=1`.
 
 ---
 
