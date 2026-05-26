@@ -1,33 +1,31 @@
 # olostep-cli
 
-[![npm](https://img.shields.io/npm/v/olostep-cli/next?label=npm%40next)](https://www.npmjs.com/package/olostep-cli)
+[![npm](https://img.shields.io/npm/v/olostep-cli.svg)](https://www.npmjs.com/package/olostep-cli)
+[![Downloads](https://img.shields.io/npm/dm/olostep-cli.svg)](https://www.npmjs.com/package/olostep-cli)
 [![CI](https://github.com/olostep-api/olostep-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/olostep-api/olostep-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Node](https://img.shields.io/node/v/olostep-cli.svg)](https://nodejs.org)
 
 The official CLI for the [Olostep API](https://www.olostep.com/) — scrape, map, crawl, AI-researched answers, and parallel batch jobs from your terminal. Every data command returns **JSON on stdout**, so it pipes cleanly into `jq`, scripts, agents, and CI.
 
-> **0.2.x is a Node rewrite of the CLI.** Same commands, same flags, same JSON, same credentials path as 0.1.x — drop-in compatible. Smaller and faster:
-
-| | 0.1.x (Python) | 0.2.x (Node) |
-| --- | --- | --- |
-| `npm install -g` | ~31 s (downloads a platform binary) | **~0.7 s** |
-| Cold start | 2–5 s (PyInstaller extract) | **~0.2 s** |
-| On-disk | 14 MB | **99 KB** |
+Pure JavaScript, Node 18+, no native binaries to download. Installs in under a second, starts in ~200 ms, ships as a single ~100 KB bundle.
 
 ---
 
 ## Install
 
 ```bash
-npm install -g olostep-cli@next
+npm install -g olostep-cli
 olostep init
 ```
 
-Requires Node.js **18+**. While 0.2.x is in pre-release, install with `@next`; once 0.2.0 ships to `latest`, plain `npm install -g olostep-cli` will give you the Node version.
+Requires Node.js **18+**.
 
 `olostep init` is the recommended first step — it signs you in, installs the Olostep skills into every detected AI agent, and configures the MCP server, all in one go. Flags: `--skills-only`, `--mcp-only`, `--no-browser`, `--relogin`.
 
-To **just sign in** (no skills, no MCP): `olostep login` (or `--no-browser` for SSH). For CI, set `OLOSTEP_API_KEY=...`. Get a key at <https://www.olostep.com/dashboard/api-keys>.
+To **just sign in** (no skills, no MCP): `olostep login` (or `--no-browser` for SSH). To **sign out**: `olostep logout` (`--dry-run` to preview). For CI, set `OLOSTEP_API_KEY=...`. Get a key at <https://www.olostep.com/dashboard/api-keys>.
+
+Or try it without installing: `npx -y olostep-cli@latest --help`.
 
 ---
 
