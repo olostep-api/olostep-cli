@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { listInstalledSkills, SKILL_FOLDER_PREFIX } from "./skills.js";
+import { detectInstalledAgents, listInstalledSkills, SKILL_FOLDER_PREFIX } from "./skills.js";
 
 let tmpRoot: string;
 let canonicalDir: string;
@@ -95,5 +95,64 @@ describe("listInstalledSkills — lockfile prefix filter", () => {
     expect(result.skills).toHaveLength(1);
     expect(result.skills[0].folder).toBe("olostep-scrape");
     expect(result.skills[0].canonicalExists).toBe(false);
+  });
+});
+
+describe("detectInstalledAgents — real vs phantom dirs", () => {
+  let fakeHome: string;
+  beforeEach(() => {
+    fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "olostep-home-test-"));
+  });
+  afterEach(() => {
+    try { fs.rmSync(fakeHome, { recursive: true, force: true }); } catch { /* ignore */ }
+  });
+
+  it("returns no agents when none of the convention dirs exist", () => {
+    expect(detectInstalledAgents({ home: fakeHome })).toEqual([]);
+  });
+
+  it("detects an agent when its dir has files beyond skills/", () => {
+    fs.mkdirSync(path.join(fakeHome, ".cursor", "skills"), { recursive: true });
+    fs.writeFileSync(path.join(fakeHome, ".cursor", "argv.json"), "{}");
+
+    expect(detectInstalledAgents({ home: fakeHome })).toContain("cursor");
+  });
+
+  it("detects an agent when its dir has only non-skills files", () => {
+    fs.mkdirSync(path.join(fakeHome, ".claude"), { recursive: true });
+    fs.writeFileSync(path.join(fakeHome, ".claude", ".credentials.json"), "{}");
+
+    expect(detectInstalledAgents({ home: fakeHome })).toContain("claude");
+  });
+
+  it("rejects a phantom dir whose only contents are skills/", () => {
+    fs.mkdirSync(path.join(fakeHome, ".factory", "skills"), { recursive: true });
+
+    expect(detectInstalledAgents({ home: fakeHome })).not.toContain("factory");
+  });
+
+  it("rejects a phantom dir even with olostep-* skills inside skills/", () => {
+    fs.mkdirSync(path.join(fakeHome, ".roo", "skills", "olostep-scrape"), {
+      recursive: true,
+    });
+
+    expect(detectInstalledAgents({ home: fakeHome })).not.toContain("roo");
+  });
+
+  it("returns multiple real agents and skips phantoms on a mixed machine", () => {
+    fs.mkdirSync(path.join(fakeHome, ".claude"), { recursive: true });
+    fs.writeFileSync(path.join(fakeHome, ".claude", ".credentials.json"), "{}");
+    fs.mkdirSync(path.join(fakeHome, ".cursor", "extensions"), { recursive: true });
+
+    fs.mkdirSync(path.join(fakeHome, ".factory", "skills"), { recursive: true });
+    fs.mkdirSync(path.join(fakeHome, ".roo", "skills"), { recursive: true });
+
+    const agents = detectInstalledAgents({ home: fakeHome }).sort();
+    expect(agents).toEqual(["claude", "cursor"]);
+  });
+
+  it("rejects a dir with absolutely nothing in it", () => {
+    fs.mkdirSync(path.join(fakeHome, ".gemini"), { recursive: true });
+    expect(detectInstalledAgents({ home: fakeHome })).not.toContain("gemini");
   });
 });
