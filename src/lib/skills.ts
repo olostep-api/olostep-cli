@@ -621,6 +621,10 @@ export function listInstalledSkills(opts: ListOptions = {}): ListResult {
   const home = os.homedir();
   const skills: ListedSkill[] = [];
   for (const folder of Object.keys(lock.skills).sort()) {
+    // The lockfile at ~/.agents/.skill-lock.json is a shared file —
+    // any other CLI that follows the agent-skills convention can have
+    // entries here. We only list the skills WE manage.
+    if (!folder.startsWith(SKILL_FOLDER_PREFIX)) continue;
     const meta = lock.skills[folder];
     if (!meta || typeof meta !== "object") continue;
     const canonicalPath = String(meta.canonicalPath || "");
