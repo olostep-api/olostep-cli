@@ -21,6 +21,18 @@ olostep init
 
 Requires Node.js **18+**.
 
+**One-liner alternatives** (no manual `npm` step):
+
+```bash
+# macOS / Linux
+curl -fsSL https://olostep.com/install.sh | sh
+
+# Windows PowerShell
+iwr -useb https://olostep.com/install.ps1 | iex
+```
+
+Both scripts check Node 18+, run `npm install -g olostep-cli` (with a sudo fallback on bash), and tell you to run `olostep init` next.
+
 `olostep init` is the recommended first step — it signs you in, installs the Olostep skills into every detected AI agent, and configures the MCP server, all in one go. Flags: `--skills-only`, `--mcp-only`, `--no-browser`, `--relogin`.
 
 To **just sign in** (no skills, no MCP): `olostep login` (or `--no-browser` for SSH). To **sign out**: `olostep logout` (`--dry-run` to preview). For CI, set `OLOSTEP_API_KEY=...`. Get a key at <https://www.olostep.com/dashboard/api-keys>.
