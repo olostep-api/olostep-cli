@@ -393,16 +393,24 @@ describe("--skip-network flag", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("does not include auth.reachable or mcp.endpoint.reachable in results", async () => {
+  it("includes auth.reachable and mcp.endpoint.reachable with status 'skip' when --skip-network is set", async () => {
     process.env.OLOSTEP_API_KEY = "sk-test-key";
     vi.stubGlobal("fetch", vi.fn());
 
     const { results } = await runDoctor({ skipNetwork: true });
     const ids = results.map((r) => r.id);
 
-    expect(ids).not.toContain("auth.reachable");
-    expect(ids).not.toContain("mcp.endpoint.reachable");
     expect(ids).toContain("auth.present");
+    expect(ids).toContain("auth.reachable");
+    expect(ids).toContain("mcp.endpoint.reachable");
+
+    const authReachable = results.find((r) => r.id === "auth.reachable")!;
+    expect(authReachable.status).toBe("skip");
+    expect(authReachable.message).toContain("--skip-network");
+
+    const mcpReachable = results.find((r) => r.id === "mcp.endpoint.reachable")!;
+    expect(mcpReachable.status).toBe("skip");
+    expect(mcpReachable.message).toContain("--skip-network");
   });
 
   it("includes auth.reachable and mcp.endpoint.reachable when --skip-network is not set", async () => {

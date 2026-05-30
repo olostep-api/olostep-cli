@@ -141,7 +141,8 @@ function statusSymbol(status: CheckStatus): string {
   if (status === "ok") return c.green("✓");
   if (status === "fail") return c.red("✗");
   if (status === "warn") return c.yellow(WARN_SYM);
-  return c.yellow("-");
+  if (status === "skip") return "-";
+  return "-";
 }
 
 function humanLine(result: CheckResult): string {
@@ -177,7 +178,11 @@ export async function runDoctor(opts: DoctorOptions): Promise<{ results: CheckRe
   }
 
   // 2. auth.reachable
-  if (!opts.skipNetwork) {
+  if (opts.skipNetwork) {
+    results.push({ id: "auth.reachable", status: "skip", message: "Skipped (--skip-network)" });
+    // 3. mcp.endpoint.reachable (skipped)
+    results.push({ id: "mcp.endpoint.reachable", status: "skip", message: "Skipped (--skip-network)" });
+  } else {
     if (authPresent.status === "ok" && resolvedKey !== null) {
       results.push(await checkAuthReachable(resolvedKey));
     }
