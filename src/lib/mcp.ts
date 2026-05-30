@@ -9,8 +9,15 @@
  *   - "stdio": local install via `npx -y olostep-mcp` with OLOSTEP_API_KEY env
  *
  * Per-agent schema differences (root key, URL field, extra fields) are
- * captured in `agentConfigs()` so the CLI stays one command across all five
- * supported agents (cursor, claude, windsurf, vscode, kilo).
+ * captured in `agentConfigs()` so the CLI stays one command across all nine
+ * supported agents (cursor, claude, windsurf, vscode, kilo, claude-desktop,
+ * opencode, continue, codex).
+ *
+ * Special format flags:
+ *   - arrayFormat: agent stores mcpServers as an array; entries are matched by
+ *     `name` field rather than object key.
+ *   - tomlFormat: agent config is a TOML file (codex). A minimal inline
+ *     serialiser/deserialiser handles the `[mcp_servers.olostep]` section.
  */
 
 import * as fs from "node:fs";
@@ -31,7 +38,7 @@ export interface AgentMcpConfig {
   globalConfig: string;
   /** Project-local install target. `null` = agent has no project-local MCP config. */
   projectConfig: string | null;
-  /** JSON key that holds the per-server map. */
+  /** JSON key that holds the per-server map (or array when arrayFormat=true). */
   rootKey: string;
   /** Field name for the hosted URL inside the server entry. */
   urlField: string;
@@ -39,6 +46,30 @@ export interface AgentMcpConfig {
   httpExtra: Record<string, unknown>;
   /** Extra fields merged into a stdio-mode entry. */
   stdioExtra: Record<string, unknown>;
+  /**
+   * When true the config stores mcpServers as an array of objects with a
+   * `name` field (e.g. Continue). Install/uninstall match by `name === SERVER_NAME`.
+   */
+  arrayFormat?: boolean;
+  /**
+   * When true the config file is TOML, not JSON (e.g. Codex).
+   * A minimal inline TOML helper is used instead of JSON.parse/stringify.
+   */
+  tomlFormat?: boolean;
+}
+
+/**
+ * Returns the platform-specific base directory for Claude Desktop config.
+ * Exported for testability (tests pass a fake `platform` + `home`).
+ */
+export function claudeDesktopConfigDir(
+  platform: NodeJS.Platform,
+  home: string,
+): string {
+  if (platform === "darwin") return path.join(home, "Library", "Application Support", "Claude");
+  if (platform === "win32") return path.join(home, "AppData", "Roaming", "Claude");
+  // Linux and everything else
+  return path.join(home, ".config", "Claude");
 }
 
 /**
@@ -48,6 +79,8 @@ export interface AgentMcpConfig {
 export function agentConfigs(): Record<string, AgentMcpConfig> {
   const home = os.homedir();
   const cwd = process.cwd();
+  const platform = process.platform;
+  const claudeDesktopDir = claudeDesktopConfigDir(platform, home);
   return {
     cursor: {
       name: "cursor",
@@ -101,6 +134,48 @@ export function agentConfigs(): Record<string, AgentMcpConfig> {
       urlField: "url",
       httpExtra: {},
       stdioExtra: {},
+    },
+    "claude-desktop": {
+      name: "claude-desktop",
+      probePaths: [claudeDesktopDir],
+      globalConfig: path.join(claudeDesktopDir, "claude_desktop_config.json"),
+      projectConfig: null,
+      rootKey: "mcpServers",
+      urlField: "url",
+      httpExtra: {},
+      stdioExtra: {},
+    },
+    opencode: {
+      name: "opencode",
+      probePaths: [path.join(home, ".config", "opencode")],
+      globalConfig: path.join(home, ".config", "opencode", "opencode.json"),
+      projectConfig: path.join(cwd, "opencode.json"),
+      rootKey: "mcpServers",
+      urlField: "url",
+      httpExtra: {},
+      stdioExtra: {},
+    },
+    continue: {
+      name: "continue",
+      probePaths: [path.join(home, ".continue")],
+      globalConfig: path.join(home, ".continue", "config.json"),
+      projectConfig: null,
+      rootKey: "mcpServers",
+      urlField: "url",
+      httpExtra: { type: "http" },
+      stdioExtra: { type: "stdio" },
+      arrayFormat: true,
+    },
+    codex: {
+      name: "codex",
+      probePaths: [path.join(home, ".codex")],
+      globalConfig: path.join(home, ".codex", "config.toml"),
+      projectConfig: null,
+      rootKey: "mcp_servers",
+      urlField: "url",
+      httpExtra: {},
+      stdioExtra: {},
+      tomlFormat: true,
     },
   };
 }
@@ -233,6 +308,145 @@ export function _writeJson(p: string, data: Record<string, unknown>): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Minimal TOML helpers for codex config.toml
+// Handles the specific shape:
+//   [mcp_servers.olostep]
+//   type = "http"
+//   url = "https://..."
+//
+//   [mcp_servers.olostep.headers]
+//   Authorization = "Bearer ..."
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse `[mcp_servers.olostep]` and `[mcp_servers.olostep.headers]` sections
+ * from a TOML string. Returns the entry as a plain object, or null if absent.
+ */
+export function _tomlReadOlostepEntry(toml: string): Record<string, unknown> | null {
+  const lines = toml.split(/\r?\n/);
+  let inMain = false;
+  let inHeaders = false;
+  let found = false;
+  const entry: Record<string, unknown> = {};
+  const headers: Record<string, string> = {};
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.startsWith("[")) {
+      inMain = line === "[mcp_servers.olostep]";
+      inHeaders = line === "[mcp_servers.olostep.headers]";
+      if (inMain) found = true;
+      continue;
+    }
+    if (inMain || inHeaders) {
+      const m = line.match(/^(\w+)\s*=\s*"(.*)"$/);
+      if (m) {
+        if (inHeaders) {
+          headers[m[1]] = m[2];
+        } else {
+          entry[m[1]] = m[2];
+        }
+      }
+    }
+  }
+  if (!found) return null;
+  if (Object.keys(headers).length > 0) entry.headers = headers;
+  return entry;
+}
+
+/**
+ * Remove `[mcp_servers.olostep]` and `[mcp_servers.olostep.headers]` sections
+ * (plus their key lines) from a TOML string. Returns cleaned string.
+ */
+export function _tomlRemoveOlostepSection(toml: string): string {
+  const lines = toml.split(/\r?\n/);
+  const out: string[] = [];
+  let skip = false;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.startsWith("[")) {
+      skip =
+        line === "[mcp_servers.olostep]" ||
+        line === "[mcp_servers.olostep.headers]";
+    }
+    if (!skip) out.push(raw);
+  }
+  // Trim trailing blank lines then add final newline.
+  while (out.length > 0 && out[out.length - 1].trim() === "") out.pop();
+  return out.length > 0 ? out.join("\n") + "\n" : "";
+}
+
+/**
+ * Serialise the olostep entry into TOML section lines and append/replace in
+ * the existing TOML string. Always writes `[mcp_servers.olostep]` at the end.
+ */
+export function _tomlUpsertOlostepEntry(
+  existing: string,
+  entry: Record<string, unknown>,
+): string {
+  // Remove any existing olostep section first.
+  const base = _tomlRemoveOlostepSection(existing);
+  const parts: string[] = [];
+
+  // Separate headers from scalar fields.
+  const headers = entry.headers as Record<string, string> | undefined;
+  const scalars = Object.entries(entry).filter(([k]) => k !== "headers");
+
+  parts.push("[mcp_servers.olostep]");
+  for (const [k, v] of scalars) {
+    parts.push(`${k} = "${String(v)}"`);
+  }
+
+  if (headers && Object.keys(headers).length > 0) {
+    parts.push("");
+    parts.push("[mcp_servers.olostep.headers]");
+    for (const [k, v] of Object.entries(headers)) {
+      parts.push(`${k} = "${v}"`);
+    }
+  }
+
+  const section = parts.join("\n") + "\n";
+  return base ? base + "\n" + section : section;
+}
+
+/**
+ * Read a TOML config file for the codex agent. Returns the raw text (or ""
+ * if absent) so callers can upsert/remove the olostep section.
+ */
+export function _readToml(p: string): string {
+  if (!fs.existsSync(p)) return "";
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch (err: any) {
+    throw new Error(`Cannot read ${p}: ${err?.message || err}`);
+  }
+}
+
+/**
+ * Write TOML file atomically (same rename trick as `_writeJson`).
+ */
+export function _writeToml(p: string, content: string): void {
+  const parent = path.dirname(p);
+  fs.mkdirSync(parent, { recursive: true });
+  const tmpDir = fs.mkdtempSync(path.join(parent, `.${path.basename(p)}.`));
+  const tmpFile = path.join(tmpDir, "out.toml");
+  try {
+    fs.writeFileSync(tmpFile, content, { encoding: "utf8" });
+    fs.renameSync(tmpFile, p);
+  } finally {
+    try {
+      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    } catch { /* ignore */ }
+    try {
+      fs.rmdirSync(tmpDir);
+    } catch { /* ignore */ }
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 /** Return a deep copy of `entry` with secrets masked. Safe to print/log. */
 export function redact(entry: Record<string, unknown>): Record<string, unknown> {
   const safe = JSON.parse(JSON.stringify(entry)) as Record<string, unknown>;
@@ -274,6 +488,85 @@ export function installForAgents(opts: {
     const cfg = cfgs[agent];
     if (!cfg) throw new Error(`Unknown agent: ${agent}`);
     const p = resolveConfigPath(cfg, { globalInstall: opts.globalInstall });
+    const entry = buildServerEntry(cfg, { transport: opts.transport, apiKey: opts.apiKey });
+
+    // ------------------------------------------------------------------
+    // TOML format (codex)
+    // ------------------------------------------------------------------
+    if (cfg.tomlFormat) {
+      const toml = _readToml(p);
+      const existing = _tomlReadOlostepEntry(toml);
+      const alreadyPresent = existing !== null;
+      if (alreadyPresent && !opts.overwrite) {
+        results.push({
+          agent,
+          path: p,
+          transport: opts.transport,
+          status: "skipped",
+          entry: redact(existing as Record<string, unknown>),
+        });
+        continue;
+      }
+      let status: InstallStatus;
+      if (opts.dryRun) {
+        status = alreadyPresent ? "would-update" : "would-install";
+      } else {
+        const updated = _tomlUpsertOlostepEntry(toml, entry);
+        _writeToml(p, updated);
+        status = alreadyPresent ? "updated" : "installed";
+      }
+      results.push({ agent, path: p, transport: opts.transport, status, entry: redact(entry) });
+      continue;
+    }
+
+    // ------------------------------------------------------------------
+    // Array format (continue)
+    // ------------------------------------------------------------------
+    if (cfg.arrayFormat) {
+      const data = _readJson(p);
+      let arr = data[cfg.rootKey];
+      if (arr === undefined) {
+        arr = [];
+        data[cfg.rootKey] = arr;
+      }
+      if (!Array.isArray(arr)) {
+        throw new Error(`${p}: '${cfg.rootKey}' is not a JSON array — refusing to overwrite.`);
+      }
+      const serverArray = arr as Record<string, unknown>[];
+      const existingIdx = serverArray.findIndex(
+        (e) => e && typeof e === "object" && !Array.isArray(e) && e.name === SERVER_NAME,
+      );
+      const alreadyPresent = existingIdx !== -1;
+      if (alreadyPresent && !opts.overwrite) {
+        results.push({
+          agent,
+          path: p,
+          transport: opts.transport,
+          status: "skipped",
+          entry: redact(serverArray[existingIdx]),
+        });
+        continue;
+      }
+      const arrayEntry = { name: SERVER_NAME, ...entry };
+      let status: InstallStatus;
+      if (opts.dryRun) {
+        status = alreadyPresent ? "would-update" : "would-install";
+      } else {
+        if (alreadyPresent) {
+          serverArray[existingIdx] = arrayEntry;
+        } else {
+          serverArray.push(arrayEntry);
+        }
+        _writeJson(p, data);
+        status = alreadyPresent ? "updated" : "installed";
+      }
+      results.push({ agent, path: p, transport: opts.transport, status, entry: redact(arrayEntry) });
+      continue;
+    }
+
+    // ------------------------------------------------------------------
+    // Standard object-map format (all other agents)
+    // ------------------------------------------------------------------
     const existing = _readJson(p);
     let servers = existing[cfg.rootKey];
     if (servers === undefined) {
@@ -301,7 +594,6 @@ export function installForAgents(opts: {
       continue;
     }
 
-    const entry = buildServerEntry(cfg, { transport: opts.transport, apiKey: opts.apiKey });
     let status: InstallStatus;
     if (opts.dryRun) {
       status = alreadyPresent ? "would-update" : "would-install";
@@ -344,6 +636,58 @@ export function uninstallForAgents(opts: {
       results.push({ agent, path: p, status: "not-present" });
       continue;
     }
+
+    // ------------------------------------------------------------------
+    // TOML format (codex)
+    // ------------------------------------------------------------------
+    if (cfg.tomlFormat) {
+      const toml = _readToml(p);
+      const existing = _tomlReadOlostepEntry(toml);
+      if (existing === null) {
+        results.push({ agent, path: p, status: "not-present" });
+        continue;
+      }
+      if (opts.dryRun) {
+        results.push({ agent, path: p, status: "would-remove" });
+        continue;
+      }
+      const updated = _tomlRemoveOlostepSection(toml);
+      _writeToml(p, updated);
+      results.push({ agent, path: p, status: "removed" });
+      continue;
+    }
+
+    // ------------------------------------------------------------------
+    // Array format (continue)
+    // ------------------------------------------------------------------
+    if (cfg.arrayFormat) {
+      const data = _readJson(p);
+      const arr = data[cfg.rootKey];
+      if (!Array.isArray(arr)) {
+        results.push({ agent, path: p, status: "not-present" });
+        continue;
+      }
+      const serverArray = arr as Record<string, unknown>[];
+      const existingIdx = serverArray.findIndex(
+        (e) => e && typeof e === "object" && !Array.isArray(e) && e.name === SERVER_NAME,
+      );
+      if (existingIdx === -1) {
+        results.push({ agent, path: p, status: "not-present" });
+        continue;
+      }
+      if (opts.dryRun) {
+        results.push({ agent, path: p, status: "would-remove" });
+        continue;
+      }
+      serverArray.splice(existingIdx, 1);
+      _writeJson(p, data);
+      results.push({ agent, path: p, status: "removed" });
+      continue;
+    }
+
+    // ------------------------------------------------------------------
+    // Standard object-map format
+    // ------------------------------------------------------------------
     const data = _readJson(p);
     const servers = data[cfg.rootKey];
     if (
@@ -401,7 +745,49 @@ export function listInstalled(opts?: { globalInstall?: boolean }): ListResult[] 
       continue;
     }
     try {
+      // TOML format (codex)
+      if (cfg.tomlFormat) {
+        const toml = _readToml(p);
+        const entry = _tomlReadOlostepEntry(toml);
+        if (entry !== null) {
+          results.push({
+            agent: name,
+            path: p,
+            present: true,
+            transport: detectTransport(entry),
+            entry: redact(entry),
+          });
+        } else {
+          results.push({ agent: name, path: p, present: false, transport: null });
+        }
+        continue;
+      }
+
       const data = _readJson(p);
+
+      // Array format (continue)
+      if (cfg.arrayFormat) {
+        const arr = data[cfg.rootKey];
+        if (Array.isArray(arr)) {
+          const entryRaw = (arr as Record<string, unknown>[]).find(
+            (e) => e && typeof e === "object" && !Array.isArray(e) && e.name === SERVER_NAME,
+          );
+          if (entryRaw) {
+            results.push({
+              agent: name,
+              path: p,
+              present: true,
+              transport: detectTransport(entryRaw),
+              entry: redact(entryRaw),
+            });
+            continue;
+          }
+        }
+        results.push({ agent: name, path: p, present: false, transport: null });
+        continue;
+      }
+
+      // Standard object-map format
       const servers = data[cfg.rootKey];
       if (
         servers &&
