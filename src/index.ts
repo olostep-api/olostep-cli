@@ -22,6 +22,7 @@ import { registerListSkills } from "./commands/list-skills.js";
 import { registerMcpInstall } from "./commands/mcp-install.js";
 import { registerMcpUninstall } from "./commands/mcp-uninstall.js";
 import { registerListMcp } from "./commands/list-mcp.js";
+import { registerDoctor } from "./commands/doctor.js";
 
 import { maybeNotifyUpdate } from "./lib/version-check.js";
 
@@ -68,6 +69,7 @@ async function main(): Promise<void> {
   const mcpCmd = program.command("mcp").description("Install or uninstall the Olostep MCP server in your agents.");
   const listCmd = program.command("list").description("Show what Olostep has installed.");
 
+  registerDoctor(program);
   registerAddSkills(addCmd);
   registerRemoveSkills(removeCmd);
   registerListSkills(listCmd);
