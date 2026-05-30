@@ -5,6 +5,7 @@ import { registerLogout } from "./commands/logout.js";
 import { registerStatus } from "./commands/status.js";
 import { registerUpdate } from "./commands/update.js";
 import { registerInit } from "./commands/init.js";
+import { registerAuth } from "./commands/auth.js";
 
 import { registerScrape } from "./commands/scrape.js";
 import { registerScrapeGet } from "./commands/scrape-get.js";
@@ -56,6 +57,9 @@ async function main(): Promise<void> {
   registerBatchScrape(program);
   registerBatchUpdate(program);
   registerSearch(program);
+
+  // auth subcommand group
+  registerAuth(program, VERSION);
 
   // Parent commands for subcommands. Each parent is a Command that holds
   // children — `olostep add skills`, `olostep mcp install`, `olostep list skills`.
