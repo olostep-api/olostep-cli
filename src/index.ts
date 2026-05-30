@@ -13,6 +13,7 @@ import { registerAnswer } from "./commands/answer.js";
 import { registerCrawl } from "./commands/crawl.js";
 import { registerBatchScrape } from "./commands/batch-scrape.js";
 import { registerBatchUpdate } from "./commands/batch-update.js";
+import { registerSearch } from "./commands/search.js";
 
 import { registerAddSkills } from "./commands/add-skills.js";
 import { registerRemoveSkills } from "./commands/remove-skills.js";
@@ -54,6 +55,7 @@ async function main(): Promise<void> {
   registerCrawl(program);
   registerBatchScrape(program);
   registerBatchUpdate(program);
+  registerSearch(program);
 
   // Parent commands for subcommands. Each parent is a Command that holds
   // children — `olostep add skills`, `olostep mcp install`, `olostep list skills`.
