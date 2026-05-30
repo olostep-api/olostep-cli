@@ -6,6 +6,7 @@ import { registerStatus } from "./commands/status.js";
 import { registerUpdate } from "./commands/update.js";
 import { registerInit } from "./commands/init.js";
 import { registerAuth } from "./commands/auth.js";
+import { registerVersion } from "./commands/version.js";
 
 import { registerScrape } from "./commands/scrape.js";
 import { registerScrapeGet } from "./commands/scrape-get.js";
@@ -51,6 +52,7 @@ async function main(): Promise<void> {
   registerInit(program);
   registerStatus(program, VERSION);
   registerUpdate(program, VERSION);
+  registerVersion(program, VERSION);
   registerScrape(program);
   registerScrapeGet(program);
   registerMap(program);
