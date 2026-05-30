@@ -1,6 +1,7 @@
 import { Command } from "commander";
 
 import { c, sym } from "../lib/colors.js";
+import { isJsonMode } from "../lib/output.js";
 import { listInstalled } from "../lib/mcp.js";
 
 /**
@@ -18,7 +19,7 @@ export function registerListMcp(listApp: Command): void {
     .option("--json", "Machine-readable JSON output.", false)
     .action((opts) => {
       const globalInstall = opts.global !== false;
-      const asJson = Boolean(opts.json);
+      const asJson = isJsonMode(opts);
       const statuses = listInstalled({ globalInstall });
 
       if (asJson) {

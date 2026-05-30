@@ -19,6 +19,7 @@ import { registerSearch } from "./commands/search.js";
 import { registerAddSkills } from "./commands/add-skills.js";
 import { registerRemoveSkills } from "./commands/remove-skills.js";
 import { registerListSkills } from "./commands/list-skills.js";
+import { registerSkills } from "./commands/skills.js";
 import { registerMcpInstall } from "./commands/mcp-install.js";
 import { registerMcpUninstall } from "./commands/mcp-uninstall.js";
 import { registerListMcp } from "./commands/list-mcp.js";
@@ -73,6 +74,7 @@ async function main(): Promise<void> {
   registerAddSkills(addCmd);
   registerRemoveSkills(removeCmd);
   registerListSkills(listCmd);
+  registerSkills(program);
   registerMcpInstall(mcpCmd);
   registerMcpUninstall(mcpCmd);
   registerListMcp(listCmd);

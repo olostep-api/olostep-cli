@@ -4,6 +4,7 @@ import { runLogin } from "../lib/auth.js";
 import { runLogout } from "../lib/logout.js";
 import { writeCredentialsApiKey, getCredentialsPath } from "../lib/config.js";
 import { c, sym } from "../lib/colors.js";
+import { isJsonMode } from "../lib/output.js";
 
 import * as readline from "node:readline/promises";
 
@@ -88,7 +89,8 @@ export function registerAuth(program: Command, version: string): void {
     .action(async (opts) => {
       try {
         const credentialsPath = getCredentialsPath();
-        const skipPrompt = opts.yes || opts.json || opts.dryRun;
+        const jsonMode = isJsonMode(opts);
+        const skipPrompt = opts.yes || jsonMode || opts.dryRun;
 
         if (!skipPrompt) {
           const proceed = await confirmRemoval(credentialsPath);
@@ -100,7 +102,7 @@ export function registerAuth(program: Command, version: string): void {
 
         const result = runLogout({ dryRun: !!opts.dryRun });
 
-        if (opts.json) {
+        if (jsonMode) {
           process.stdout.write(JSON.stringify(result, null, 2) + "\n");
           return;
         }
@@ -144,7 +146,7 @@ export function registerAuth(program: Command, version: string): void {
         configDir: getConfigDir(),
         auth,
       };
-      if (opts.json) {
+      if (isJsonMode(opts)) {
         process.stdout.write(JSON.stringify(payload, null, 2) + "\n");
         return;
       }
@@ -178,7 +180,7 @@ export function registerAuth(program: Command, version: string): void {
     .action((key: string, opts) => {
       try {
         const filePath = writeCredentialsApiKey(key);
-        if (opts.json) {
+        if (isJsonMode(opts)) {
           process.stdout.write(JSON.stringify({ ok: true, credentialsPath: filePath }) + "\n");
           return;
         }
@@ -199,7 +201,7 @@ export function registerAuth(program: Command, version: string): void {
     .action((token: string, opts) => {
       try {
         const filePath = writeCredentialsApiKey(token);
-        if (opts.json) {
+        if (isJsonMode(opts)) {
           process.stdout.write(JSON.stringify({ ok: true, credentialsPath: filePath }) + "\n");
           return;
         }

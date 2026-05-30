@@ -86,6 +86,7 @@ export async function checkForUpdate(current: string): Promise<string | null> {
  */
 export async function maybeNotifyUpdate(current: string, invokedSubcommand?: string): Promise<void> {
   if (invokedSubcommand === "update") return;
+  if (process.env.OLOSTEP_NO_UPDATE_CHECK) return;
   if (process.env.OLOSTEP_NO_UPDATE_NOTICE) return;
   try {
     if (!process.stderr.isTTY) return;

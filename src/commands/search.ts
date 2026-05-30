@@ -6,6 +6,7 @@ import { Command } from "commander";
 import { api } from "../lib/api-client.js";
 import {
   failWith,
+  isJsonMode,
   parseIntFlag,
   parseNumberFlag,
   writeOutput,
@@ -90,7 +91,7 @@ export function registerSearch(program: Command): void {
           timeoutMs: Math.round(timeoutS * 1000),
         });
 
-        if (opts.json) {
+        if (isJsonMode(opts)) {
           const links = result?.result?.links ?? [];
           writeOutput({ id: result.id, links }, opts.out);
           return;

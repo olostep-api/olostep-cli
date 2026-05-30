@@ -4,6 +4,7 @@ import * as readline from "node:readline/promises";
 import { runLogout, LogoutResult } from "../lib/logout.js";
 import { getCredentialsPath } from "../lib/config.js";
 import { c, sym } from "../lib/colors.js";
+import { isJsonMode } from "../lib/output.js";
 
 /**
  * Ask the user to confirm credential removal. Returns true to proceed.
@@ -86,7 +87,8 @@ export function registerLogout(program: Command): void {
     .action(async (opts) => {
       try {
         const credentialsPath = getCredentialsPath();
-        const skipPrompt = opts.yes || opts.json || opts.dryRun;
+        const jsonMode = isJsonMode(opts);
+        const skipPrompt = opts.yes || jsonMode || opts.dryRun;
 
         if (!skipPrompt) {
           const proceed = await confirmRemoval(credentialsPath);
@@ -98,7 +100,7 @@ export function registerLogout(program: Command): void {
 
         const result = runLogout({ dryRun: !!opts.dryRun });
 
-        if (opts.json) {
+        if (jsonMode) {
           process.stdout.write(JSON.stringify(result, null, 2) + "\n");
           return;
         }

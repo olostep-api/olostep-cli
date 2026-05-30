@@ -14,6 +14,7 @@ import { Command } from "commander";
 
 import { c } from "../lib/colors.js";
 import { ENV_API_KEY, ENV_API_TOKEN, resolveApiKey } from "../lib/config.js";
+import { isJsonMode } from "../lib/output.js";
 import { agentConfigs } from "../lib/mcp.js";
 
 // ---------------------------------------------------------------------------
@@ -213,13 +214,14 @@ export function registerDoctor(program: Command): void {
     .option("--skip-network", "Skip network checks (auth.reachable, mcp.endpoint.reachable)")
     .option("--fail-on-warn", "Exit with code 1 if any check has status 'warn'")
     .action(async (opts) => {
+      const jsonMode = isJsonMode(opts);
       const { results, exitCode } = await runDoctor({
-        json: opts.json as boolean | undefined,
+        json: jsonMode,
         skipNetwork: opts.skipNetwork as boolean | undefined,
         failOnWarn: opts.failOnWarn as boolean | undefined,
       });
 
-      if (opts.json) {
+      if (jsonMode) {
         for (const r of results) {
           process.stdout.write(ndjsonLine(r) + "\n");
         }
