@@ -56,7 +56,8 @@ export function checkAuthPresent(): CheckResult {
 /** Check 2: does the key work against the live API? */
 export async function checkAuthReachable(apiKey: string): Promise<CheckResult> {
   const id = "auth.reachable";
-  const url = "https://api.olostep.com/v1/account";
+  // GET a non-existent map ID — 404 means auth passed, 401 means key invalid.
+  const url = "https://api.olostep.com/v1/maps/healthcheck_probe";
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -68,14 +69,11 @@ export async function checkAuthReachable(apiKey: string): Promise<CheckResult> {
       },
       signal: controller.signal,
     });
-    if (res.status === 200) {
-      return { id, status: "ok", message: "API key valid (HTTP 200)" };
-    }
     if (res.status === 401) {
       return { id, status: "fail", message: "API key invalid (HTTP 401)" };
     }
-    // Any other non-200 is treated as a warning (unexpected response).
-    return { id, status: "warn", message: `Unexpected response (HTTP ${res.status})` };
+    // 404 (resource not found) or any other non-401 response means auth succeeded.
+    return { id, status: "ok", message: `API key valid (HTTP ${res.status})` };
   } catch (err: any) {
     if (err?.name === "AbortError") {
       return { id, status: "warn", message: "Request timed out" };

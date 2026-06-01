@@ -24,7 +24,7 @@ export function registerMcpInstall(mcpApp: Command): void {
     .description("Install the Olostep MCP server in your AI agent's config.")
     .option(
       "--agent <name>",
-      "Install for this agent only (repeatable). Supported: cursor, claude, windsurf, vscode, kilo.",
+      "Install for this agent only (repeatable). Supported: cursor, claude, windsurf, vscode, kilo, claude-desktop, opencode, continue, codex.",
       (val: string, prev: string[] = []) => [...prev, val],
       [] as string[],
     )
