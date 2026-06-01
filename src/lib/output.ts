@@ -112,6 +112,17 @@ export function failWith(err: unknown): never {
 }
 
 /**
+ * Returns true if the caller requested JSON output — either via the `--json`
+ * CLI flag or by setting the `OLOSTEP_JSON` environment variable to a truthy
+ * value ("1", "true", "yes", etc., case-insensitive).
+ */
+export function isJsonMode(opts: { json?: boolean }): boolean {
+  if (opts.json) return true;
+  const env = (process.env.OLOSTEP_JSON ?? "").toLowerCase().trim();
+  return env === "1" || env === "true" || env === "yes" || env === "on";
+}
+
+/**
  * Parse a positive integer CLI flag value, throwing a clear error.
  */
 export function parseIntFlag(raw: string, flag: string, opts: { min?: number } = {}): number {

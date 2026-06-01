@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 import { c, sym } from "../lib/colors.js";
 import { resolveApiKey } from "../lib/config.js";
+import { isJsonMode } from "../lib/output.js";
 import {
   installForAgents,
   redact,
@@ -54,7 +55,7 @@ export function registerMcpInstall(mcpApp: Command): void {
         process.exit(2);
       }
 
-      const asJson = Boolean(opts.json);
+      const asJson = isJsonMode(opts);
       const dryRun = Boolean(opts.dryRun);
       const globalInstall = opts.global !== false;
       const overwrite = opts.overwrite !== false;

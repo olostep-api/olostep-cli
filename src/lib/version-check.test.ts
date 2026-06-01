@@ -150,12 +150,14 @@ describe("maybeNotifyUpdate", () => {
   beforeEach(() => {
     clearCache();
     delete process.env.OLOSTEP_NO_UPDATE_NOTICE;
+    delete process.env.OLOSTEP_NO_UPDATE_CHECK;
   });
 
   afterEach(() => {
     (process.stderr as any).isTTY = ORIGINAL_TTY;
     vi.unstubAllGlobals();
     delete process.env.OLOSTEP_NO_UPDATE_NOTICE;
+    delete process.env.OLOSTEP_NO_UPDATE_CHECK;
     clearCache();
   });
 
@@ -178,6 +180,25 @@ describe("maybeNotifyUpdate", () => {
   it("skips when OLOSTEP_NO_UPDATE_NOTICE is set", async () => {
     (process.stderr as any).isTTY = true;
     process.env.OLOSTEP_NO_UPDATE_NOTICE = "1";
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    await maybeNotifyUpdate("1.0.0");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("skips when OLOSTEP_NO_UPDATE_CHECK is set", async () => {
+    (process.stderr as any).isTTY = true;
+    process.env.OLOSTEP_NO_UPDATE_CHECK = "1";
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    await maybeNotifyUpdate("1.0.0");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("OLOSTEP_NO_UPDATE_NOTICE and OLOSTEP_NO_UPDATE_CHECK are independent", async () => {
+    (process.stderr as any).isTTY = true;
+    // Only OLOSTEP_NO_UPDATE_CHECK set — should also suppress
+    process.env.OLOSTEP_NO_UPDATE_CHECK = "true";
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     await maybeNotifyUpdate("1.0.0");

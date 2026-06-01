@@ -9,6 +9,7 @@ import {
   readCredentialsApiKey,
 } from "../lib/config.js";
 import { c, sym } from "../lib/colors.js";
+import { isJsonMode } from "../lib/output.js";
 
 interface AuthStatus {
   source: "env" | "credentials" | "none";
@@ -45,7 +46,7 @@ export function registerStatus(program: Command, version: string): void {
         configDir: getConfigDir(),
         auth,
       };
-      if (opts.json) {
+      if (isJsonMode(opts)) {
         process.stdout.write(JSON.stringify(payload, null, 2) + "\n");
         return;
       }

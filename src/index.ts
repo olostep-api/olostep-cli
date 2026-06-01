@@ -5,6 +5,8 @@ import { registerLogout } from "./commands/logout.js";
 import { registerStatus } from "./commands/status.js";
 import { registerUpdate } from "./commands/update.js";
 import { registerInit } from "./commands/init.js";
+import { registerAuth } from "./commands/auth.js";
+import { registerVersion } from "./commands/version.js";
 
 import { registerScrape } from "./commands/scrape.js";
 import { registerScrapeGet } from "./commands/scrape-get.js";
@@ -13,13 +15,16 @@ import { registerAnswer } from "./commands/answer.js";
 import { registerCrawl } from "./commands/crawl.js";
 import { registerBatchScrape } from "./commands/batch-scrape.js";
 import { registerBatchUpdate } from "./commands/batch-update.js";
+import { registerSearch } from "./commands/search.js";
 
 import { registerAddSkills } from "./commands/add-skills.js";
 import { registerRemoveSkills } from "./commands/remove-skills.js";
 import { registerListSkills } from "./commands/list-skills.js";
+import { registerSkills } from "./commands/skills.js";
 import { registerMcpInstall } from "./commands/mcp-install.js";
 import { registerMcpUninstall } from "./commands/mcp-uninstall.js";
 import { registerListMcp } from "./commands/list-mcp.js";
+import { registerDoctor } from "./commands/doctor.js";
 
 import { maybeNotifyUpdate } from "./lib/version-check.js";
 
@@ -47,6 +52,7 @@ async function main(): Promise<void> {
   registerInit(program);
   registerStatus(program, VERSION);
   registerUpdate(program, VERSION);
+  registerVersion(program, VERSION);
   registerScrape(program);
   registerScrapeGet(program);
   registerMap(program);
@@ -54,6 +60,10 @@ async function main(): Promise<void> {
   registerCrawl(program);
   registerBatchScrape(program);
   registerBatchUpdate(program);
+  registerSearch(program);
+
+  // auth subcommand group
+  registerAuth(program, VERSION);
 
   // Parent commands for subcommands. Each parent is a Command that holds
   // children — `olostep add skills`, `olostep mcp install`, `olostep list skills`.
@@ -62,9 +72,11 @@ async function main(): Promise<void> {
   const mcpCmd = program.command("mcp").description("Install or uninstall the Olostep MCP server in your agents.");
   const listCmd = program.command("list").description("Show what Olostep has installed.");
 
+  registerDoctor(program);
   registerAddSkills(addCmd);
   registerRemoveSkills(removeCmd);
   registerListSkills(listCmd);
+  registerSkills(program);
   registerMcpInstall(mcpCmd);
   registerMcpUninstall(mcpCmd);
   registerListMcp(listCmd);

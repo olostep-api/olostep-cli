@@ -1,6 +1,7 @@
 import { Command } from "commander";
 
 import { c, sym } from "../lib/colors.js";
+import { isJsonMode } from "../lib/output.js";
 import { resolveTargets, uninstallForAgents, type UninstallResult } from "../lib/mcp.js";
 
 /**
@@ -26,7 +27,7 @@ export function registerMcpUninstall(mcpApp: Command): void {
     .option("--dry-run", "Show what would be removed without touching any file.", false)
     .option("--json", "Machine-readable JSON output.", false)
     .action((opts) => {
-      const asJson = Boolean(opts.json);
+      const asJson = isJsonMode(opts);
       const dryRun = Boolean(opts.dryRun);
       const globalInstall = opts.global !== false;
       const allAgents = opts.allAgents !== false;
