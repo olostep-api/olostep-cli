@@ -33,7 +33,7 @@ olostep mcp install --transport stdio  # local npx instead of hosted
 olostep mcp install --dry-run --json   # plan only
 ```
 
-The CLI merges the `olostep` entry into the user's existing MCP config without touching other servers.
+The CLI merges the `olostep` entry into the user's existing MCP config without touching other servers. Supported agents: `cursor`, `claude`, `claude-desktop`, `windsurf`, `vscode`, `kilo`, `opencode`, `continue`, `codex`.
 
 ### Manual: edit the JSON yourself
 
@@ -61,7 +61,22 @@ claude mcp add --transport http olostep https://mcp.olostep.com/mcp \
   --header "Authorization: Bearer <their-api-key>"
 ```
 
-Other clients (Windsurf, VS Code, Kilo, etc.) — same JSON shape as Cursor, but in that client's MCP config file. Always include the `Authorization: Bearer …` header.
+Other clients (Claude Desktop, Windsurf, VS Code, Kilo, OpenCode, Codex, etc.) — same JSON shape as Cursor, but in that client's MCP config file. Always include the `Authorization: Bearer …` header.
+
+**Continue** uses an array instead of an object for `mcpServers`:
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "olostep",
+      "type": "http",
+      "url": "https://mcp.olostep.com/mcp",
+      "headers": { "Authorization": "Bearer <their-api-key>" }
+    }
+  ]
+}
+```
 
 ### Local stdio install (alternative)
 
