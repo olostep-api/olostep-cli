@@ -90,7 +90,6 @@ Run `olostep <command> --help` for the full flag list.
 | `olostep auth logout` | Alias for `olostep logout` |
 | `olostep auth status` | Alias for `olostep status` |
 | `olostep auth set-key <key>` | Save an API key directly (no browser needed) |
-| `olostep auth set-token <token>` | Save a service token (for CI / autonomous agents) |
 
 ### Data commands
 

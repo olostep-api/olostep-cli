@@ -193,24 +193,4 @@ export function registerAuth(program: Command, version: string): void {
       }
     });
 
-  // auth set-token <token>
-  authCmd
-    .command("set-token <token>")
-    .description("Save a service token to credentials.json (stored as api_key).")
-    .option("--json", "Machine-readable JSON output")
-    .action((token: string, opts) => {
-      try {
-        const filePath = writeCredentialsApiKey(token);
-        if (isJsonMode(opts)) {
-          process.stdout.write(JSON.stringify({ ok: true, credentialsPath: filePath }) + "\n");
-          return;
-        }
-        process.stdout.write(
-          `\n  ${c.green(sym.ok)} Token saved to ${c.dim(filePath)}\n\n`,
-        );
-      } catch (err: any) {
-        process.stderr.write(`Error: ${err?.message || err}\n`);
-        process.exit(1);
-      }
-    });
 }
