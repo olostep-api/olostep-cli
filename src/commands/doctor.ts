@@ -73,7 +73,7 @@ export async function checkAuthReachable(apiKey: string): Promise<CheckResult> {
       return { id, status: "fail", message: "API key invalid (HTTP 401)" };
     }
     // 404 (resource not found) or any other non-401 response means auth succeeded.
-    return { id, status: "ok", message: `API key valid (HTTP ${res.status})` };
+    return { id, status: "ok", message: "API key valid" };
   } catch (err: any) {
     if (err?.name === "AbortError") {
       return { id, status: "warn", message: "Request timed out" };
