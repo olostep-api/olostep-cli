@@ -1,5 +1,5 @@
 ---
-name: scrape
+name: olostep-scrape
 category: usage
 description: Scrape a single webpage and extract its content as clean markdown, HTML, JSON, or text using Olostep. Use when the user shares a URL and wants to read it, extract content from it, understand its structure, use it as context for coding, or turn a page into data. Handles JavaScript-rendered pages, SPAs, and bot-protected sites automatically.
 ---

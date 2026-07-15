@@ -1,5 +1,5 @@
 ---
-name: debug-error
+name: olostep-debug-error
 category: workflow
 description: Search the web for a specific error message or bug using Olostep. Use when the user pastes an error stack trace, says their code is failing, or asks how to fix a bug that requires looking up recent GitHub issues, StackOverflow threads, or framework documentation.
 ---

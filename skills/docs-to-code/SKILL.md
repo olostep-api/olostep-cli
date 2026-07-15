@@ -1,5 +1,5 @@
 ---
-name: docs-to-code
+name: olostep-docs-to-code
 category: workflow
 description: Scrape API documentation or library docs and use them to write working, up-to-date code. Use when the user wants to integrate a third-party API, learn a new library, generate SDK usage examples, write code based on a docs URL, or update code after a library version change. This is the flagship workflow — never hallucinate API parameters when you can scrape the real docs.
 ---

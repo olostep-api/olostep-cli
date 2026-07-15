@@ -1,5 +1,5 @@
 ---
-name: research
+name: olostep-research
 category: workflow
 description: Do thorough, cited web research to help the user make a decision. Compare tools, libraries, or services. Evaluate competitors. Research tech stacks, market data, or architecture patterns. Use when the user needs a well-sourced answer before making a technical, product, or business decision.
 ---

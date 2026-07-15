@@ -1,5 +1,5 @@
 ---
-name: map
+name: olostep-map
 category: usage
 description: Discover and list all URLs on a website using Olostep. Use when the user wants to see what pages exist on a site, find specific sections (docs, blog, API reference), audit a site's structure, or get a URL list to feed into batch or crawl.
 ---
