@@ -1,5 +1,5 @@
 ---
-name: setup
+name: olostep-setup
 category: build
 description: Configure the Olostep MCP server so all Olostep skills work correctly. Use when the user is setting up Olostep for the first time, has no MCP server configured, or is getting authentication errors. Supports both the hosted endpoint (recommended) and a local stdio install.
 ---

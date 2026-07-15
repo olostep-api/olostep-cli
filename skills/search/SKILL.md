@@ -1,5 +1,5 @@
 ---
-name: search
+name: olostep-search
 category: usage
 description: Search the web using Olostep for live, up-to-date information. Three tools available — answers (AI-synthesised answers with citations), google_search (structured Google results), and get_website_urls (find pages within a specific site). Use when the user needs current data, comparisons, or facts the AI's training data may not have.
 ---

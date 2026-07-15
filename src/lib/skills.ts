@@ -489,13 +489,18 @@ export function runInstall(opts: InstallOptions): InstallResult {
 
   const discovered = discoverSkills(source);
 
-  const include = new Set((opts.only ?? []).map((x) => sanitizeName(x)));
-  const exclude = new Set((opts.exclude ?? []).map((x) => sanitizeName(x)));
+  // Strip the olostep- prefix before comparing so both `--skill search`
+  // and `--skill olostep-search` resolve to the same entry.
+  const stripPrefix = (x: string) =>
+    x.startsWith(SKILL_FOLDER_PREFIX) ? x.slice(SKILL_FOLDER_PREFIX.length) : x;
+
+  const include = new Set((opts.only ?? []).map((x) => stripPrefix(sanitizeName(x))));
+  const exclude = new Set((opts.exclude ?? []).map((x) => stripPrefix(sanitizeName(x))));
   const category = opts.category as SkillCategory | undefined;
 
   const selected = discovered.filter((s) => {
-    if (include.size && !include.has(s.sanitizedName)) return false;
-    if (exclude.has(s.sanitizedName)) return false;
+    if (include.size && !include.has(stripPrefix(s.sanitizedName))) return false;
+    if (exclude.has(stripPrefix(s.sanitizedName))) return false;
     if (category && s.category !== category) return false;
     return true;
   });

@@ -1,5 +1,5 @@
 ---
-name: integrate
+name: olostep-integrate
 category: build
 description: Automatically integrate the Olostep SDK into the user's codebase. Analyzes the project, detects the language and framework, chooses the right integration pattern, installs the SDK, writes all the code, and verifies it works — with minimal prompting. Use when the user wants to add Olostep web scraping, search, or AI answers to their project.
 argument-hint: "API-KEY"

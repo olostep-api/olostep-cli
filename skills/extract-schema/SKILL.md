@@ -1,5 +1,5 @@
 ---
-name: extract-schema
+name: olostep-extract-schema
 category: workflow
 description: Scrape a webpage with Olostep and extract specific structured data matching a TypeScript interface, JSON schema, or database model. Use when the user wants to turn a website (like a product list, directory, or article) into clean, structured JSON or seed data.
 ---

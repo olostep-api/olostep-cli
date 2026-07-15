@@ -1,5 +1,5 @@
 ---
-name: migrate-code
+name: olostep-migrate-code
 category: workflow
 description: Scrape a migration guide, changelog, or breaking changes document using Olostep and automatically update the user's local code. Use when the user is upgrading a framework, moving to a new API version, or says "help me migrate this code based on these docs".
 ---
