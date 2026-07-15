@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { c } from "./colors.js";
 
 const CACHE_FILE = path.join(os.tmpdir(), "olostep-cli-version-cache.json");
+const NOTICE_FILE = path.join(os.tmpdir(), "olostep-cli-update-notice.json");
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const REGISTRY_URL = "https://registry.npmjs.org/olostep-cli/latest";
 
@@ -79,15 +80,61 @@ export async function checkForUpdate(current: string): Promise<string | null> {
   return isNewer(latest, current) ? latest : null;
 }
 
+function isSuppressed(subcommand?: string): boolean {
+  if (subcommand === "update") return true;
+  if (process.env.OLOSTEP_NO_UPDATE_CHECK) return true;
+  if (process.env.OLOSTEP_NO_UPDATE_NOTICE) return true;
+  return false;
+}
+
 /**
- * Prints a one-line "update available" notice to stderr — interactive use only.
- * Suppressed in pipes/CI and when OLOSTEP_NO_UPDATE_NOTICE is set.
- * Never throws.
+ * Shows any pending update notice written by a previous scheduleUpdateCheck call.
+ * Call at process start (before the command) so the notice lands before output.
+ * Deletes the notice file after reading it. Fail-silent.
+ */
+export function showPendingUpdateNotice(current: string, invokedSubcommand?: string): void {
+  if (isSuppressed(invokedSubcommand)) return;
+  try {
+    if (!process.stderr.isTTY) return;
+  } catch { return; }
+  try {
+    if (!fs.existsSync(NOTICE_FILE)) return;
+    const raw = fs.readFileSync(NOTICE_FILE, "utf8");
+    // Delete regardless of whether we can show it.
+    try { fs.unlinkSync(NOTICE_FILE); } catch { /* ignore */ }
+    const data = JSON.parse(raw);
+    const latest = (data?.latest || "").toString().trim();
+    if (!latest || !isNewer(latest, current)) return;
+    process.stderr.write(
+      c.yellow(`  ↑ olostep ${latest} available — run \`olostep update\`\n`),
+    );
+  } catch { /* fail silent */ }
+}
+
+/**
+ * Fires a background registry check with no await. If a newer version is found,
+ * writes a notice file so showPendingUpdateNotice displays it on the next run.
+ * Never blocks the command. Fail-silent.
+ */
+export function scheduleUpdateCheck(current: string, invokedSubcommand?: string): void {
+  if (isSuppressed(invokedSubcommand)) return;
+  checkForUpdate(current)
+    .then((latest) => {
+      if (latest) {
+        try {
+          fs.writeFileSync(NOTICE_FILE, JSON.stringify({ latest }), "utf8");
+        } catch { /* ignore */ }
+      }
+    })
+    .catch(() => { /* ignore */ });
+}
+
+/**
+ * Legacy combined helper. Kept for tests that import it directly.
+ * New code should use showPendingUpdateNotice + scheduleUpdateCheck.
  */
 export async function maybeNotifyUpdate(current: string, invokedSubcommand?: string): Promise<void> {
-  if (invokedSubcommand === "update") return;
-  if (process.env.OLOSTEP_NO_UPDATE_CHECK) return;
-  if (process.env.OLOSTEP_NO_UPDATE_NOTICE) return;
+  if (isSuppressed(invokedSubcommand)) return;
   try {
     if (!process.stderr.isTTY) return;
   } catch { return; }
@@ -95,7 +142,7 @@ export async function maybeNotifyUpdate(current: string, invokedSubcommand?: str
     const latest = await checkForUpdate(current);
     if (latest) {
       process.stderr.write(
-        c.yellow(`  ↑ olostep ${latest} is available (you have ${current}) — run \`olostep update\`\n`),
+        c.yellow(`  ↑ olostep ${latest} available — run \`olostep update\`\n`),
       );
     }
   } catch { /* fail silent */ }

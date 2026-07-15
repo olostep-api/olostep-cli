@@ -26,7 +26,7 @@ import { registerMcpUninstall } from "./commands/mcp-uninstall.js";
 import { registerListMcp } from "./commands/list-mcp.js";
 import { registerDoctor } from "./commands/doctor.js";
 
-import { maybeNotifyUpdate } from "./lib/version-check.js";
+import { showPendingUpdateNotice, scheduleUpdateCheck } from "./lib/version-check.js";
 
 // Replaced at build time by tsup's `define` with the package.json version.
 // The fallback only fires under `npm run dev` (tsx) where define doesn't apply.
@@ -81,15 +81,12 @@ async function main(): Promise<void> {
   registerMcpUninstall(mcpCmd);
   registerListMcp(listCmd);
 
-  // Best-effort update notice — runs in parallel with the command,
-  // never blocks command output, never throws.
-  const notifyPromise = maybeNotifyUpdate(VERSION, process.argv[2]);
+  // Show any pending update notice from the previous check (appears before command output).
+  showPendingUpdateNotice(VERSION, process.argv[2]);
+  // Fire the registry check for the next run — no await, never blocks.
+  scheduleUpdateCheck(VERSION, process.argv[2]);
 
   await program.parseAsync(process.argv);
-
-  // Brief window for the update notice to land before exit. It's
-  // background work; we don't wait forever.
-  await Promise.race([notifyPromise, new Promise((r) => setTimeout(r, 500))]);
 }
 
 main().catch((err: any) => {
