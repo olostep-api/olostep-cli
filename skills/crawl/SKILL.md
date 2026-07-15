@@ -1,5 +1,5 @@
 ---
-name: crawl
+name: olostep-crawl
 category: usage
 description: Autonomously crawl an entire website by following links from a starting URL using Olostep. Use when the user wants to ingest an entire docs site, blog, knowledge base, or any multi-page site as context for coding, writing, analysis, or building a knowledge base.
 ---

@@ -1,5 +1,5 @@
 ---
-name: answers
+name: olostep-answers
 category: usage
 description: Get AI-powered answers with citations from live web data using Olostep. Use when the user needs up-to-date facts, competitive intelligence, pricing comparisons, structured data from the web, or wants web-sourced answers in a specific JSON shape they can use directly in code or docs.
 ---
