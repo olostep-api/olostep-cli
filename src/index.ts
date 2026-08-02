@@ -16,6 +16,7 @@ import { registerCrawl } from "./commands/crawl.js";
 import { registerBatchScrape } from "./commands/batch-scrape.js";
 import { registerBatchUpdate } from "./commands/batch-update.js";
 import { registerSearch } from "./commands/search.js";
+import { registerMonitor } from "./commands/monitor.js";
 
 import { registerAddSkills } from "./commands/add-skills.js";
 import { registerRemoveSkills } from "./commands/remove-skills.js";
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
   registerBatchScrape(program);
   registerBatchUpdate(program);
   registerSearch(program);
+  registerMonitor(program);
 
   // auth subcommand group
   registerAuth(program, VERSION);
